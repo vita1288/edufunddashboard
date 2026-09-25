@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduDash - Admin Dashboard</title>
+    
+    <!-- Load Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load Phosphor Icons for modern, clean iconography -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Configure Tailwind theme for our fintech aesthetic -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        emerald: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Import Inter font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb; /* gray-50 */
+        }
+
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Loading spinner animation */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spin 1.5s linear infinite;
+        }
+
+        /* Sidebar transition */
+        .sidebar-transition {
+            transition: transform 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-gray-800 antialiased h-screen flex overflow-hidden">
+
+    <!-- Mobile Overlay -->
+    <div id="mobile-overlay" class="fixed inset-0 bg-gray-900/50 z-40 hidden lg:hidden transition-opacity" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-100 sidebar-transition -translate-x-full lg:translate-x-0 lg:static flex flex-col h-full shadow-sm lg:shadow-none">
+        <!-- Logo -->
+        <div class="h-16 flex items-center justify-between px-6 border-b border-gray-100">
+            <div class="flex items-center gap-2 text-emerald-600">
+                <i class="ph-fill ph-wallet text-2xl"></i>
+                <span class="text-xl font-bold tracking-tight">EduDash.</span>
+            </div>
+            <button onclick="toggleSidebar()" class="lg:hidden text-gray-400 hover:text-gray-600">
+                <i class="ph ph-x text-xl"></i>
+            </button>
+        </div>
+        
+        <!-- Nav Links -->
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-emerald-50 text-emerald-700 font-medium text-sm transition-colors">
+                <i class="ph ph-squares-four text-lg"></i>
+                Dashboard
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium text-sm transition-colors">
+                <i class="ph ph-users text-lg"></i>
+                Students
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium text-sm transition-colors">
+                <i class="ph ph-bank text-lg"></i>
+                Funding
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium text-sm transition-colors">
+                <i class="ph ph-file-text text-lg"></i>
+                Reports
+            </a>
+        </nav>
+
+        <!-- Sidebar Footer -->
+        <div class="p-4 border-t border-gray-100">
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium text-sm transition-colors">
+                <i class="ph ph-gear text-lg"></i>
+                Settings
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        
+        <!-- Top Header -->
+        <header class="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 sm:px-6 z-30 shrink-0">
+            <!-- Left side: Mobile menu button -->
+            <div class="flex items-center">
+                <button onclick="toggleSidebar()" class="lg:hidden p-2 -ml-2 mr-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                    <i class="ph ph-list text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Middle: UI State Toggle Controls -->
+            <div class="hidden md:flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-200">
+                <span class="text-xs text-gray-500 font-medium px-2">Test States:</span>
+                <button onclick="setUIState('success')" id="btn-state-success" class="state-btn text-xs px-3 py-1.5 rounded-md capitalize font-medium transition bg-white shadow-sm border border-gray-200 text-gray-800">Data</button>
+                <button onclick="setUIState('loading')" id="btn-state-loading" class="state-btn text-xs px-3 py-1.5 rounded-md capitalize font-medium transition text-gray-500 hover:text-gray-700">Loading</button>
+                <button onclick="setUIState('error')" id="btn-state-error" class="state-btn text-xs px-3 py-1.5 rounded-md capitalize font-medium transition text-gray-500 hover:text-gray-700">Error</button>
+                <button onclick="setUIState('empty')" id="btn-state-empty" class="state-btn text-xs px-3 py-1.5 rounded-md capitalize font-medium transition text-gray-500 hover:text-gray-700">Empty</button>
+            </div>
+
+            <!-- Right side: Notifications & Profile -->
+            <div class="flex items-center gap-4">
+                <button class="relative p-2 text-gray-400 hover:text-gray-600 transition rounded-full hover:bg-gray-50">
+                    <i class="ph ph-bell text-xl"></i>
+                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                </button>
+                
+                <div class="flex items-center gap-3 pl-4 border-l border-gray-100 cursor-pointer hover:opacity-80 transition">
+                    <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">
+                        A
+                    </div>
+                    <div class="hidden sm:block text-left">
+                        <p class="text-sm font-semibold text-gray-700 leading-tight">Admin User</p>
+                        <p class="text-xs text-gray-500">Superadmin</p>
+                    </div>
+                    <i class="ph ph-caret-down text-gray-400 text-xs hidden sm:block"></i>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative">
+            
+            <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">Dashboard Overview</h1>
+                    <p class="text-gray-500 mt-1 text-sm">Welcome back. Here is what's happening today.</p>
+                </div>
+                <!-- Mobile State Selector (visible only on small screens) -->
+                <select onchange="setUIState(this.value)" class="md:hidden text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 outline-none focus:ring-2 focus:ring-emerald-500">
+                    <option value="success">State: Data (Success)</option>
+                    <option value="loading">State: Loading</option>
+                    <option value="error">State: Error</option>
+                    <option value="empty">State: Empty</option>
+                </select>
+            </div>
+
+            <!-- ================= UI STATES CONTAINERS ================= -->
+
+            <!-- 1. LOADING STATE -->
+            <div id="view-loading" class="hidden flex-col items-center justify-center h-96 w-full bg-white rounded-xl border border-gray-100 shadow-sm">
+                <i class="ph ph-spinner-gap text-5xl text-emerald-500 animate-spin-slow mb-4"></i>
+                <h3 class="text-lg font-semibold text-gray-700">Loading Data</h3>
+                <p class="text-gray-500 text-sm mt-1">Fetching latest dashboard metrics...</p>
+            </div>
+
+            <!-- 2. ERROR STATE -->
+            <div id="view-error" class="hidden flex-col items-center justify-center h-96 w-full bg-red-50/50 rounded-xl border border-red-100">
+                <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4">
+                    <i class="ph ph-warning-circle text-3xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-red-800">Connection Failed</h3>
+                <p class="text-red-600 text-sm mt-1 mb-6 text-center max-w-md">We couldn't retrieve the data from our servers. Please check your connection and try again.</p>
+                <button onclick="setUIState('success')" class="px-5 py-2.5 bg-white border border-red-200 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 transition shadow-sm">
+                    Retry Connection
+                </button>
+            </div>
+
+            <!-- 3. EMPTY STATE -->
+            <div id="view-empty" class="hidden flex-col items-center justify-center h-96 w-full bg-white rounded-xl border border-gray-200 border-dashed">
+                <div class="w-16 h-16 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center mb-4">
+                    <i class="ph ph-tray text-3xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-800">No Records Found</h3>
+                <p class="text-gray-500 text-sm mt-1 max-w-sm text-center">There are currently no applications, funding data, or activities to display for this period.</p>
+            </div>
+
+            <!-- 4. SUCCESS STATE (Main Dashboard) -->
+            <div id="view-success" class="space-y-6 block">
+                
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Stat 1 -->
+                    <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-md transition duration-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <p class="text-sm text-gray-500 font-medium">Total Funding</p>
+                            <div class="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
+                                <i class="ph ph-wallet text-lg"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-end justify-between">
+                            <h3 class="text-2xl font-bold text-gray-800">Rp 45.2B</h3>
+                            <span class="flex items-center text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                <i class="ph-bold ph-trend-up mr-1"></i> +12.5%
+                            </span>
+                        </div>
+                    </div>
+                    <!-- Stat 2 -->
+                    <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-md transition duration-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <p class="text-sm text-gray-500 font-medium">Active Students</p>
+                            <div class="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
+                                <i class="ph ph-student text-lg"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-end justify-between">
+                            <h3 class="text-2xl font-bold text-gray-800">2,405</h3>
+                            <span class="flex items-center text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                <i class="ph-bold ph-trend-up mr-1"></i> +5.2%
+                            </span>
+                        </div>
+                    </div>
+                    <!-- Stat 3 -->
+                    <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-md transition duration-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <p class="text-sm text-gray-500 font-medium">Pending Approvals</p>
+                            <div class="p-1.5 bg-amber-50 text-amber-600 rounded-lg">
+                                <i class="ph ph-clock-countdown text-lg"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-end justify-between">
+                            <h3 class="text-2xl font-bold text-gray-800">142</h3>
+                            <span class="flex items-center text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                                <i class="ph-bold ph-minus mr-1"></i> -2.4%
+                            </span>
+                        </div>
+                    </div>
+                    <!-- Stat 4 -->
+                    <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-md transition duration-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <p class="text-sm text-gray-500 font-medium">Partner Institutions</p>
+                            <div class="p-1.5 bg-purple-50 text-purple-600 rounded-lg">
+                                <i class="ph ph-buildings text-lg"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-end justify-between">
+                            <h3 class="text-2xl font-bold text-gray-800">86</h3>
+                            <span class="flex items-center text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                <i class="ph-bold ph-trend-up mr-1"></i> +1.5%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lower Section: Table (Left) and Activity (Right) -->
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                    
+                    <!-- Table Section -->
+                    <div class="xl:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+                        <!-- Table Header & Search -->
+                        <div class="p-5 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <h2 class="text-lg font-bold text-gray-800">Recent Applications</h2>
+                            <div class="relative w-full sm:w-64">
+                                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                <input type="text" id="searchInput" placeholder="Search applicants..." 
+                                    class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors">
+                            </div>
+                        </div>
+                        
+                        <!-- Table Wrapper for horizontal scroll on mobile -->
+                        <div class="overflow-x-auto flex-1">
+                            <table class="w-full text-left border-collapse min-w-[600px]">
+                                <thead>
+                                    <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                                        <th class="px-5 py-3 font-medium border-b border-gray-100">App ID</th>
+                                        <th class="px-5 py-3 font-medium border-b border-gray-100">Student Name</th>
+                                        <th class="px-5 py-3 font-medium border-b border-gray-100">University</th>
+                                        <th class="px-5 py-3 font-medium border-b border-gray-100">Amount</th>
+                                        <th class="px-5 py-3 font-medium border-b border-gray-100">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody" class="text-sm text-gray-700 divide-y divide-gray-50">
+                                    <!-- Rows populated by JavaScript -->
+                                </tbody>
+                            </table>
+                            <!-- Empty Table State -->
+                            <div id="tableEmptyState" class="hidden p-8 text-center text-gray-500">
+                                No results found for your search.
+                            </div>
+                        </div>
+
+                        <!-- Table Pagination -->
+                        <div class="p-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+                            <p class="text-sm text-gray-500">
+                                Showing <span id="pageStart" class="font-medium text-gray-800">0</span> to <span id="pageEnd" class="font-medium text-gray-800">0</span> of <span id="totalItems" class="font-medium text-gray-800">0</span> results
+                            </p>
+                            <div class="flex gap-2">
+                                <button id="btnPrev" onclick="changePage(-1)" class="px-3 py-1.5 border border-gray-200 bg-white rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center">
+                                    <i class="ph ph-caret-left"></i>
+                                </button>
+                                <button id="btnNext" onclick="changePage(1)" class="px-3 py-1.5 border border-gray-200 bg-white rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center">
+                                    <i class="ph ph-caret-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Activity Feed Section -->
+                    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 h-fit">
+                        <div class="flex items-center justify-between mb-5">
+                            <h2 class="text-lg font-bold text-gray-800">Recent Activity</h2>
+                            <button class="text-sm text-emerald-600 font-medium hover:text-emerald-700">View All</button>
+                        </div>
+                        
+                        <div class="space-y-5" id="activityFeed">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            
+        </main>
+    </div>
+
+    <script>
+        // --- MOCK DATA ---
+        const tableData = [
+            { id: 'APP-001', name: 'Andi Saputra', university: 'Universitas Indonesia', amount: 'Rp 15,000,000', status: 'Approved' },
+            { id: 'APP-002', name: 'Siti Rahma', university: 'Institut Teknologi Bandung', amount: 'Rp 22,500,000', status: 'Pending' },
+            { id: 'APP-003', name: 'Kevin Wijaya', university: 'Universitas Gadjah Mada', amount: 'Rp 10,000,000', status: 'Approved' },
+            { id: 'APP-004', name: 'Diana Putri', university: 'Bina Nusantara', amount: 'Rp 35,000,000', status: 'Rejected' },
+            { id: 'APP-005', name: 'Reza Pratama', university: 'Universitas Padjadjaran', amount: 'Rp 18,000,000', status: 'Pending' },
+            { id: 'APP-006', name: 'Maya Sari', university: 'Universitas Indonesia', amount: 'Rp 12,000,000', status: 'Approved' },
+            { id: 'APP-007', name: 'Budi Santoso', university: 'Universitas Brawijaya', amount: 'Rp 20,000,000', status: 'Pending' },
+            { id: 'APP-008', name: 'Citra Kirana', university: 'Universitas Diponegoro', amount: 'Rp 14,500,000', status: 'Approved' },
+            { id: 'APP-009', name: 'Ahmad Faisal', university: 'Institut Pertanian Bogor', amount: 'Rp 28,000,000', status: 'Rejected' },
+            { id: 'APP-010', name: 'Lestari Ayu', university: 'Universitas Airlangga', amount: 'Rp 16,000,000', status: 'Approved' }
+        ];
+
+        const activityData = [
+            { text: 'New loan application from Budi S.', time: '2 mins ago', icon: 'ph-file-plus', color: 'text-blue-500', bg: 'bg-blue-50' },
+            { text: 'Payment received for Invoice #402', time: '1 hour ago', icon: 'ph-money', color: 'text-emerald-500', bg: 'bg-emerald-50' },
+            { text: 'Diana Putri uploaded missing docs', time: '2 hours ago', icon: 'ph-upload-simple', color: 'text-purple-500', bg: 'bg-purple-50' },
+            { text: 'System maintenance completed', time: '5 hours ago', icon: 'ph-check-circle', color: 'text-gray-500', bg: 'bg-gray-100' },
+            { text: 'Disbursement to ITB successful', time: '1 day ago', icon: 'ph-bank', color: 'text-emerald-500', bg: 'bg-emerald-50' },
+        ];
+
+        // --- STATE VARIABLES ---
+        let currentPage = 1;
+        const itemsPerPage = 4;
+        let searchQuery = '';
+        let filteredData = [...tableData];
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderActivities();
+            updateTable();
+
+            // Search input listener
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value.toLowerCase();
+                currentPage = 1; // Reset to page 1 on new search
+                updateTable();
+            });
+        });
+
+        // --- TABLE & PAGINATION LOGIC ---
+        function updateTable() {
+            // Filter data based on search
+            filteredData = tableData.filter(item => 
+                item.name.toLowerCase().includes(searchQuery) || 
+                item.id.toLowerCase().includes(searchQuery) ||
+                item.university.toLowerCase().includes(searchQuery)
+            );
+
+            const totalItems = filteredData.length;
+            const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+            
+            // Ensure current page is within bounds
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+            
+            const currentData = filteredData.slice(startIndex, endIndex);
+
+            // Render Rows
+            const tbody = document.getElementById('tableBody');
+            const emptyState = document.getElementById('tableEmptyState');
+            tbody.innerHTML = '';
+
+            if (currentData.length === 0) {
+                tbody.parentElement.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+            } else {
+                tbody.parentElement.classList.remove('hidden');
+                emptyState.classList.add('hidden');
+
+                currentData.forEach(row => {
+                    // Determine badge styling based on status
+                    let badgeClass = '';
+                    if (row.status === 'Approved') badgeClass = 'bg-emerald-100 text-emerald-700';
+                    else if (row.status === 'Pending') badgeClass = 'bg-amber-100 text-amber-700';
+                    else badgeClass = 'bg-red-100 text-red-700';
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-gray-50/80 transition-colors group';
+                    tr.innerHTML = `
+                        <td class="px-5 py-4 whitespace-nowrap text-emerald-600 font-medium">${row.id}</td>
+                        <td class="px-5 py-4 font-medium text-gray-800">${row.name}</td>
+                        <td class="px-5 py-4 text-gray-500">${row.university}</td>
+                        <td class="px-5 py-4 text-gray-800 font-medium">${row.amount}</td>
+                        <td class="px-5 py-4 whitespace-nowrap">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${badgeClass}">
+                                ${row.status}
+                            </span>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // Update Pagination Details
+            document.getElementById('pageStart').innerText = totalItems === 0 ? 0 : startIndex + 1;
+            document.getElementById('pageEnd').innerText = endIndex;
+            document.getElementById('totalItems').innerText = totalItems;
+
+            // Update Button States
+            document.getElementById('btnPrev').disabled = currentPage === 1;
+            document.getElementById('btnNext').disabled = currentPage === totalPages || totalItems === 0;
+        }
+
+        function changePage(direction) {
+            currentPage += direction;
+            updateTable();
+        }
+
+        // --- ACTIVITY FEED LOGIC ---
+        function renderActivities() {
+            const feed = document.getElementById('activityFeed');
+            feed.innerHTML = '';
+            
+            activityData.forEach(act => {
+                const item = document.createElement('div');
+                item.className = 'flex items-start gap-4';
+                item.innerHTML = `
+                    <div class="w-9 h-9 rounded-full ${act.bg} ${act.color} flex items-center justify-center shrink-0 mt-0.5">
+                        <i class="ph ${act.icon} text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-800">${act.text}</p>
+                        <p class="text-xs text-gray-400 mt-1">${act.time}</p>
+                    </div>
+                `;
+                feed.appendChild(item);
+            });
+        }
+
+        // --- UI STATE TOGGLING LOGIC ---
+        function setUIState(state) {
+            // Array of all state views
+            const views = ['success', 'loading', 'error', 'empty'];
+            
+            // Hide all views, show selected
+            views.forEach(v => {
+                const el = document.getElementById(`view-${v}`);
+                if(el) {
+                    if (v === state) {
+                        el.classList.remove('hidden');
+                        if(v === 'success') el.classList.add('block');
+                        else el.classList.add('flex');
+                    } else {
+                        el.classList.add('hidden');
+                        el.classList.remove('block', 'flex');
+                    }
+                }
+            });
+
+            // Update active styling on toggle buttons (Desktop)
+            const buttons = document.querySelectorAll('.state-btn');
+            buttons.forEach(btn => {
+                // Reset styling
+                btn.className = "state-btn text-xs px-3 py-1.5 rounded-md capitalize font-medium transition text-gray-500 hover:text-gray-700";
+            });
+
+            // Set active styling
+            const activeBtn = document.getElementById(`btn-state-${state}`);
+            if(activeBtn) {
+                activeBtn.className = "state-btn text-xs px-3 py-1.5 rounded-md capitalize font-medium transition bg-white shadow-sm border border-gray-200 text-gray-800";
+            }
+        }
+
+        // --- SIDEBAR TOGGLE LOGIC (MOBILE) ---
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobile-overlay');
+            
+            const isOpen = !sidebar.classList.contains('-translate-x-full');
+            
+            if (isOpen) {
+                // Close
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            } else {
+                // Open
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
